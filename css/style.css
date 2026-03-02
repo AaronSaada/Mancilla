@@ -69,17 +69,6 @@ body {
   background: var(--beige);
 }
 #nav:not(.solid) #nav-menu a:hover { opacity: 1; }
-#nav:not(.solid) .nav-cta {
-  background: var(--beige) !important;
-  color: var(--maroon) !important;
-  opacity: 1 !important;
-}
-#nav:not(.solid) .nav-cta::before {
-  background: #2F2F2F;
-}
-#nav:not(.solid) .nav-cta:hover {
-  color: var(--beige) !important;
-}
 
 /* Scrolled (.solid) — liens en maroon */
 #nav.solid #nav-menu a {
@@ -90,14 +79,6 @@ body {
   background: var(--maroon);
 }
 #nav.solid #nav-menu a:hover { opacity: 1; }
-#nav.solid .nav-cta {
-  background: var(--maroon) !important;
-  color: var(--beige) !important;
-  opacity: 1 !important;
-}
-#nav.solid .nav-cta:hover {
-  color: var(--beige) !important;
-}
 #nav.solid .nav-brand { color: var(--dark); }
 #nav.solid .nav-brand strong { color: var(--maroon); }
 
@@ -131,8 +112,6 @@ body {
 #nav-menu a:not(.nav-cta):hover::after { transform: scaleX(1); }
 #nav-menu a:hover { opacity: 1; }
 .nav-cta {
-  background: var(--maroon) !important;
-  color: var(--beige) !important;
   opacity: 1 !important;
   padding: 10px 22px;
   font-size: 1.1rem !important;
@@ -140,6 +119,9 @@ body {
   position: relative;
   overflow: hidden;
   transition: color .3s !important;
+  background: transparent !important;
+  border: 1.5px solid var(--maroon);
+  color: var(--maroon) !important;
   z-index: 0;
 }
 .nav-cta::before {
@@ -152,7 +134,33 @@ body {
   z-index: -1;
 }
 .nav-cta:hover::before { transform: translateX(0); }
-.nav-cta:hover { background: var(--maroon) !important; color: var(--beige) !important; }
+.nav-cta:hover { color: var(--beige) !important; }
+
+/* Transparent — contour et texte beige, remplissage beige, texte maroon */
+#nav:not(.solid) .nav-cta {
+  border-color: var(--beige) !important;
+  color: var(--beige) !important;
+  background: transparent !important;
+}
+#nav:not(.solid) .nav-cta::before {
+  background: var(--beige);
+}
+#nav:not(.solid) .nav-cta:hover {
+  color: var(--maroon) !important;
+}
+
+/* Opaque — contour et texte maroon, remplissage maroon, texte beige */
+#nav.solid .nav-cta {
+  border-color: var(--maroon) !important;
+  color: var(--maroon) !important;
+  background: transparent !important;
+}
+#nav.solid .nav-cta::before {
+  background: var(--maroon);
+}
+#nav.solid .nav-cta:hover {
+  color: var(--beige) !important;
+}
 
 /* Burger */
 #burger {
@@ -287,16 +295,29 @@ body {
 }
 .btn-fill {
   display: inline-block;
-  background: var(--maroon);
-  color: var(--beige);
+  background: transparent;
+  color: var(--maroon);
+  border: 1.5px solid var(--maroon);
   padding: 14px 28px;
   font-size: .88rem;
   font-weight: 700;
   letter-spacing: 1.6px;
   text-transform: uppercase;
-  transition: background .22s, transform .22s;
+  position: relative;
+  overflow: hidden;
+  transition: color .3s;
 }
-.btn-fill:hover { background: #421f24; transform: translateY(-2px); }
+.btn-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--maroon);
+  transform: translateX(-101%);
+  transition: transform .45s cubic-bezier(.76,0,.24,1);
+  z-index: -1;
+}
+.btn-fill:hover::before { transform: translateX(0); }
+.btn-fill:hover { color: var(--beige); }
 .btn-text {
   font-size: .9rem;
   font-weight: 400;
@@ -304,6 +325,17 @@ body {
   transition: opacity .2s;
 }
 .btn-text:hover { opacity: 1; }
+.btn-audit {
+  font-size: .95rem;
+  font-weight: 500;
+  color: var(--dark);
+  opacity: .85;
+  letter-spacing: .3px;
+  padding-left: 2px;
+  border-bottom: 1px solid rgba(47,47,47,.3);
+  padding-bottom: 2px;
+  display: inline-block;
+}
 
 /* Stats */
 .hero-stats {
@@ -806,18 +838,32 @@ section { padding: 80px 0; }
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: var(--beige);
-  color: var(--maroon);
+  background: transparent;
+  color: var(--beige);
+  border: 1.5px solid var(--beige);
   padding: 16px 40px;
   font-size: .9rem;
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   font-family: var(--body);
-  transition: opacity .2s;
   align-self: flex-start;
+  position: relative;
+  overflow: hidden;
+  transition: color .3s;
 }
-.csend:hover { opacity: .88; }
+.csend::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--beige);
+  transform: translateX(-101%);
+  transition: transform .45s cubic-bezier(.76,0,.24,1);
+  z-index: 0;
+}
+.csend:hover::before { transform: translateX(0); }
+.csend:hover { color: var(--maroon); }
+.csend-txt, .csend-spin { position: relative; z-index: 1; }
 .csend:disabled { opacity: .5; cursor: not-allowed; }
 .csend-spin {
   display: none;
