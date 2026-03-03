@@ -5,19 +5,16 @@ const nav    = document.getElementById('nav');
 const burger = document.getElementById('burger');
 const menu   = document.getElementById('nav-menu');
 
-// Scroll: add/remove .solid class
 window.addEventListener('scroll', () => {
   nav.classList.toggle('solid', window.scrollY > 40);
 }, { passive: true });
 
-// Burger toggle
 burger.addEventListener('click', () => {
   const open = nav.classList.toggle('open');
   burger.classList.toggle('open', open);
   burger.setAttribute('aria-expanded', open);
 });
 
-// Close menu on link click (mobile)
 menu.querySelectorAll('a').forEach(a => {
   a.addEventListener('click', () => {
     nav.classList.remove('open');
@@ -34,6 +31,27 @@ document.querySelectorAll('.svc-item').forEach(item => {
   const accent = item.dataset.accent;
   if (bg)     item.style.setProperty('--svc-bg', bg);
   if (accent) item.style.setProperty('--svc-accent', accent);
+
+  // Propagate --svc-bg to .svc-carousel-wrap so ::before (left fade) resolves correctly
+  const wrap = item.querySelector('.svc-carousel-wrap');
+  if (wrap && bg) {
+    wrap.style.setProperty('--svc-bg', bg);
+
+    // Inject right fade as a child of .svc-carousel-wrap — exact mirror of ::before (left fade)
+    // Being inside .svc-carousel-wrap means it shares the same opacity transition automatically
+    const fadeRight = document.createElement('div');
+    fadeRight.style.cssText = `
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 80px;
+      background: linear-gradient(to left, ${bg}, transparent);
+      z-index: 2;
+      pointer-events: none;
+    `;
+    wrap.appendChild(fadeRight);
+  }
 });
 
 /* ============================================================
@@ -42,31 +60,28 @@ document.querySelectorAll('.svc-item').forEach(item => {
 ============================================================ */
 if ('IntersectionObserver' in window) {
 
-  // Services — chaque ligne glisse depuis la droite en escalier
   const svcItems = document.querySelectorAll('.svc-item');
-  svcItems.forEach((item, i) => {
+  svcItems.forEach((item) => {
     item.style.opacity = '0';
     item.style.transform = 'translateX(60px)';
     item.style.transition = `opacity .45s ease, transform .45s ease`;
-    item.style.transitionDelay = `${i * 0.08}s`;
   });
 
-  new IntersectionObserver((entries, obs) => {
+  const svcObserver = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
-        // Trigger all items with stagger once section is visible
-        svcItems.forEach((item, i) => {
-          setTimeout(() => {
-            item.style.opacity = '1';
-            item.style.transform = 'translateX(0)';
-          }, i * 80);
-        });
-        obs.disconnect();
+        const i = Array.from(svcItems).indexOf(e.target);
+        setTimeout(() => {
+          e.target.style.opacity = '1';
+          e.target.style.transform = 'translateX(0)';
+        }, i * 80);
+        svcObserver.unobserve(e.target);
       }
     });
-  }, { threshold: 0.6 }).observe(document.getElementById('services'));
+  }, { threshold: 0.15 });
 
-  // Stats — chaque card fade-up
+  svcItems.forEach(item => svcObserver.observe(item));
+
   const csCards = document.querySelectorAll('.cscard');
   csCards.forEach((card, i) => {
     card.style.opacity = '0';
@@ -93,8 +108,6 @@ if ('IntersectionObserver' in window) {
 
 /* ============================================================
    HERO STATS COUNTER
-   — starts after 1.4s (animations finish first)
-   — 2.4s duration, ease-out-expo curve
 ============================================================ */
 function runCounter(el) {
   const target   = parseInt(el.dataset.to, 10);
@@ -103,7 +116,7 @@ function runCounter(el) {
 
   const tick = (now) => {
     const p    = Math.min((now - t0) / duration, 1);
-    const ease = p === 1 ? 1 : 1 - Math.pow(2, -10 * p); // ease-out-expo
+    const ease = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
     el.textContent = Math.round(ease * target);
     if (p < 1) requestAnimationFrame(tick);
   };
@@ -135,8 +148,8 @@ if ('IntersectionObserver' in window) {
 /* ============================================================
    CONTACT FORM
 ============================================================ */
-const form   = document.getElementById('cform');
-const msgEl  = document.getElementById('cmsg');
+const form    = document.getElementById('cform');
+const msgEl   = document.getElementById('cmsg');
 const sendBtn = form.querySelector('.csend');
 
 form.addEventListener('submit', async (e) => {
@@ -148,16 +161,15 @@ form.addEventListener('submit', async (e) => {
   const msg   = document.getElementById('fm');
   let ok = true;
 
-  if (!name.value.trim())                         { markErr(name);  ok = false; }
+  if (!name.value.trim())                              { markErr(name);  ok = false; }
   if (!email.value.trim() || !validEmail(email.value)) { markErr(email); ok = false; }
-  if (!msg.value.trim())                          { markErr(msg);   ok = false; }
+  if (!msg.value.trim())                               { markErr(msg);   ok = false; }
   if (!ok) return;
 
   sendBtn.classList.add('loading');
   sendBtn.disabled = true;
 
   try {
-    // Replace with real endpoint / webhook
     await fakePost({ name: name.value, email: email.value, message: msg.value });
     form.reset();
     showMsg('✓ Message envoyé ! Je vous réponds sous 24h.');
@@ -175,7 +187,7 @@ function clearErrors() {
   form.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
   msgEl.textContent = '';
 }
-function showMsg(txt)  {
+function showMsg(txt) {
   msgEl.textContent = txt;
   setTimeout(() => { msgEl.textContent = ''; }, 7000);
 }
@@ -201,4 +213,57 @@ window.addEventListener('scroll', () => {
 
 btt.addEventListener('click', () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* ============================================================
+   INFINITE CAROUSELS
+============================================================ */
+document.querySelectorAll('.svc-carousel').forEach(carousel => {
+  const track = carousel.querySelector('.svc-carousel-track');
+
+  const half = Math.floor(track.children.length / 2);
+  while (track.children.length > half) {
+    track.removeChild(track.lastChild);
+  }
+
+  // Wait for all images to load before measuring widths
+  const imgs = Array.from(track.querySelectorAll('img'));
+  const loaded = imgs.map(img => new Promise(res => {
+    if (img.complete) res();
+    else { img.onload = res; img.onerror = res; }
+  }));
+
+  Promise.all(loaded).then(() => {
+    const singleWidth = track.scrollWidth + 40;
+
+    let clones = 0;
+    while (track.scrollWidth < carousel.offsetWidth * 2 + singleWidth || clones < 1) {
+      Array.from(track.children).slice(0, half).forEach(el => {
+        track.appendChild(el.cloneNode(true));
+      });
+      clones++;
+      if (clones > 10) break;
+    }
+
+    // Measure loopWidth after images are loaded and clones are added
+    const loopWidth = track.scrollWidth / 2;
+    let pos     = 0;
+    let running = false;
+    const speed = 0.9;
+
+    function tick() {
+      pos += speed;
+      if (pos >= loopWidth) pos -= loopWidth;
+      track.style.transform = `translateX(-${pos}px)`;
+      if (running) requestAnimationFrame(tick);
+    }
+
+    const item = carousel.closest('.svc-item');
+    item.addEventListener('mouseenter', () => {
+      if (!running) { running = true; requestAnimationFrame(tick); }
+    });
+    item.addEventListener('mouseleave', () => {
+      running = false;
+    });
+  });
 });

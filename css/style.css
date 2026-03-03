@@ -556,7 +556,7 @@ section { padding: 80px 0; }
 
 .svc-num, .svc-body, .svc-arrow { position: relative; z-index: 1; }
 
-.svc-body { padding-left: 3.5rem; }
+.svc-body { padding-left: 3.5rem; padding-right: 3.5rem; }
 
 .svc-title {
   font-family: var(--condensed);
@@ -1084,7 +1084,7 @@ section { padding: 80px 0; }
   #testimonials .wrap,
   #contact .wrap { max-width: 80vw; }
 
-  .svc-item { padding: 2rem 0; }
+  .svc-item { padding: 2rem 2rem; }
   .svc-title { font-size: clamp(1.6rem, 2.5vw, 2.2rem); }
 
   /* Cyberstat desktop */
@@ -1176,4 +1176,69 @@ section { padding: 80px 0; }
 }
 #btt:hover svg {
   transform: translateY(-3px);
+}
+
+/* ============================================================
+   SERVICE CAROUSEL
+============================================================ */
+
+.svc-carousel-wrap {
+  position: relative;
+  width: 100%;
+  padding-left: 3.5rem;
+  overflow: hidden;
+  opacity: 0;
+  height: 0;
+  margin-top: 0;
+  transition: opacity .3s ease, height .3s ease, margin .3s ease;
+}
+
+/* Fondu gauche et droite symétriques */
+.svc-carousel-wrap::before,
+.svc-carousel-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+.svc-carousel-wrap::before {
+  left: 2rem;
+  background: linear-gradient(to right, var(--svc-bg, #593137) 30%, transparent);
+}
+.svc-carousel-wrap::after {
+  right: 0;
+  background: linear-gradient(to left, var(--svc-bg, #593137) 30%, transparent);
+}
+
+.svc-item:hover .svc-carousel-wrap {
+  opacity: 1;
+  height: 56px;
+  margin-top: 1.6rem;
+  margin-bottom: 1rem;
+  transition: height .3s ease, margin .3s ease, opacity .3s ease .3s;
+}
+
+.svc-carousel {
+  overflow: hidden;
+  width: 100%;
+}
+
+.svc-carousel-track {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  width: max-content;
+  will-change: transform;
+}
+
+.svc-carousel-track img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: .7;
+  flex-shrink: 0;
 }
