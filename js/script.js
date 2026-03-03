@@ -32,26 +32,39 @@ document.querySelectorAll('.svc-item').forEach(item => {
   if (bg)     item.style.setProperty('--svc-bg', bg);
   if (accent) item.style.setProperty('--svc-accent', accent);
 
-  // Propagate --svc-bg to .svc-carousel-wrap so ::before (left fade) resolves correctly
+  // Injecter la flèche mobile après svc-body
+  const arrow = document.createElement('div');
+  arrow.className = 'svc-mobile-arrow';
+  arrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  item.appendChild(arrow);
+
   const wrap = item.querySelector('.svc-carousel-wrap');
   if (wrap && bg) {
     wrap.style.setProperty('--svc-bg', bg);
-
-    // Inject right fade as a child of .svc-carousel-wrap — exact mirror of ::before (left fade)
-    // Being inside .svc-carousel-wrap means it shares the same opacity transition automatically
     const fadeRight = document.createElement('div');
     fadeRight.style.cssText = `
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 80px;
+      position: absolute; top: 0; right: 0; bottom: 0; width: 80px;
       background: linear-gradient(to left, ${bg}, transparent);
-      z-index: 2;
-      pointer-events: none;
+      z-index: 2; pointer-events: none;
     `;
     wrap.appendChild(fadeRight);
   }
+});
+
+/* ============================================================
+   SERVICES — toggle click sur mobile, hover sur desktop
+============================================================ */
+function isMobile() { return window.matchMedia('(max-width: 1099px)').matches; }
+
+document.querySelectorAll('.svc-item').forEach(item => {
+  item.addEventListener('click', () => {
+    if (!isMobile()) return;
+    const isActive = item.classList.contains('active');
+    // Fermer tous les autres
+    document.querySelectorAll('.svc-item').forEach(el => el.classList.remove('active'));
+    // Toggle le cliqué
+    if (!isActive) item.classList.add('active');
+  });
 });
 
 /* ============================================================
@@ -87,7 +100,7 @@ if ('IntersectionObserver' in window) {
     card.style.opacity = '0';
     card.style.transform = 'translateY(30px)';
     card.style.transition = `opacity .5s ease, transform .5s ease`;
-    card.style.transitionDelay = `${i * 0.12}s`;
+    card.style.transitionDelay = `${i * 0.12 + 0.2}s`;
   });
 
   new IntersectionObserver((entries, obs) => {
@@ -102,7 +115,7 @@ if ('IntersectionObserver' in window) {
         obs.disconnect();
       }
     });
-  }, { threshold: 0.6 }).observe(document.getElementById('cyberstat'));
+  }, { threshold: 0.15 }).observe(document.getElementById('cyberstat'));
 
 }
 
@@ -226,7 +239,6 @@ document.querySelectorAll('.svc-carousel').forEach(carousel => {
     track.removeChild(track.lastChild);
   }
 
-  // Wait for all images to load before measuring widths
   const imgs = Array.from(track.querySelectorAll('img'));
   const loaded = imgs.map(img => new Promise(res => {
     if (img.complete) res();
@@ -245,7 +257,6 @@ document.querySelectorAll('.svc-carousel').forEach(carousel => {
       if (clones > 10) break;
     }
 
-    // Measure loopWidth after images are loaded and clones are added
     const loopWidth = track.scrollWidth / 2;
     let pos     = 0;
     let running = false;
