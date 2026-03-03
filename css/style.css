@@ -929,7 +929,32 @@ section { padding: 80px 0; }
   border-color: rgba(243,237,218,.7);
   background: rgba(243,237,218,.12);
 }
-.fr input.err, .fr textarea.err { border-color: #ff7070; }
+.fr input.err, .fr textarea.err, .fr select.err {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, .08);
+  animation: shake .35s cubic-bezier(.36,.07,.19,.97) both;
+}
+.fr-err-msg {
+  display: block;
+  font-size: .72rem;
+  color: #ff8a8a;
+  letter-spacing: .3px;
+  margin-top: .18rem;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .2s ease, transform .2s ease;
+  pointer-events: none;
+}
+.fr-err-msg.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
 .fr textarea { resize: vertical; min-height: 120px; }
 
 .csend {
@@ -975,7 +1000,9 @@ section { padding: 80px 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .csend.loading .csend-txt { display: none; }
 .csend.loading .csend-spin { display: block; }
-.cmsg { font-size: .9rem; color: rgba(243,237,218,.8); min-height: 20px; margin-top: .2rem; }
+.cmsg { font-size: .9rem; min-height: 20px; margin-top: .2rem; transition: color .2s; }
+.cmsg-ok  { color: #7dd88a; }
+.cmsg-err { color: #ff8a8a; }
 
 /* ============================================================
    FOOTER
@@ -1679,4 +1706,10 @@ section { padding: 80px 0; }
   .hero-btns { margin-bottom: 1.2rem; }
   .hs-num { font-size: 3.8rem; }
   .hs-plus { font-size: 2.4rem; }
+}
+
+.grecaptcha-badge { visibility: hidden; }
+.recaptcha-notice{
+  color: var(--beige);
+  text-align: center;
 }

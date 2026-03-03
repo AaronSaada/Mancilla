@@ -41,13 +41,9 @@ document.querySelectorAll('.svc-item').forEach(item => {
   const wrap = item.querySelector('.svc-carousel-wrap');
   if (wrap && bg) {
     wrap.style.setProperty('--svc-bg', bg);
-    const fadeRight = document.createElement('div');
-    fadeRight.style.cssText = `
-      position: absolute; top: 0; right: 0; bottom: 0; width: 80px;
-      background: linear-gradient(to left, ${bg}, transparent);
-      z-index: 2; pointer-events: none;
-    `;
-    wrap.appendChild(fadeRight);
+    // Propager la couleur au carousel pour les fades ::before/::after
+    const carousel = wrap.querySelector('.svc-carousel');
+    if (carousel) carousel.style.setProperty('--svc-bg', bg);
   }
 });
 
@@ -60,9 +56,7 @@ document.querySelectorAll('.svc-item').forEach(item => {
   item.addEventListener('click', () => {
     if (!isMobile()) return;
     const isActive = item.classList.contains('active');
-    // Fermer tous les autres
     document.querySelectorAll('.svc-item').forEach(el => el.classList.remove('active'));
-    // Toggle le cliqué
     if (!isActive) item.classList.add('active');
   });
 });
@@ -165,48 +159,130 @@ const form    = document.getElementById('cform');
 const msgEl   = document.getElementById('cmsg');
 const sendBtn = form.querySelector('.csend');
 
+const RECAPTCHA_SITE_KEY = '6LcpZn4sAAAAAKlRN5-fexlHNh67STB48sQKwgyP';
+
+/* Injecte un <span> de message d'erreur sous chaque champ */
+form.querySelectorAll('.fr').forEach(fr => {
+  const span = document.createElement('span');
+  span.className = 'fr-err-msg';
+  span.setAttribute('role', 'alert');
+  span.setAttribute('aria-live', 'polite');
+  fr.appendChild(span);
+});
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearErrors();
 
-  const name  = document.getElementById('fn');
-  const email = document.getElementById('fe');
-  const msg   = document.getElementById('fm');
+  const name    = document.getElementById('fn');
+  const email   = document.getElementById('fe');
+  const service = document.getElementById('fs');
+  const msg     = document.getElementById('fm');
   let ok = true;
 
-  if (!name.value.trim())                              { markErr(name);  ok = false; }
-  if (!email.value.trim() || !validEmail(email.value)) { markErr(email); ok = false; }
-  if (!msg.value.trim())                               { markErr(msg);   ok = false; }
-  if (!ok) return;
+  if (!name.value.trim()) {
+    markErr(name, 'Veuillez renseigner votre nom ou société.');
+    ok = false;
+  } else if (name.value.trim().length > 100) {
+    markErr(name, 'Le nom ne peut pas dépasser 100 caractères.');
+    ok = false;
+  }
+
+  if (!email.value.trim()) {
+    markErr(email, 'Veuillez renseigner votre adresse email.');
+    ok = false;
+  } else if (!validEmail(email.value)) {
+    markErr(email, 'Adresse email invalide.');
+    ok = false;
+  }
+
+  if (!service.value) {
+    markErr(service, 'Veuillez choisir un sujet.');
+    ok = false;
+  }
+
+  if (!msg.value.trim()) {
+    markErr(msg, 'Veuillez saisir votre message.');
+    ok = false;
+  } else if (msg.value.trim().length < 10) {
+    markErr(msg, 'Message trop court (10 caractères minimum).');
+    ok = false;
+  } else if (msg.value.trim().length > 5000) {
+    markErr(msg, 'Message trop long (5000 caractères maximum).');
+    ok = false;
+  }
+
+  if (!ok) {
+    const firstErr = form.querySelector('.err');
+    if (firstErr) firstErr.focus();
+    return;
+  }
 
   sendBtn.classList.add('loading');
   sendBtn.disabled = true;
 
   try {
-    await fakePost({ name: name.value, email: email.value, message: msg.value });
-    form.reset();
-    showMsg('✓ Message envoyé ! Je vous réponds sous 24h.');
+    const token = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'contact' });
+
+    const res = await fetch('contact.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:            name.value.trim(),
+        email:           email.value.trim(),
+        service:         service ? service.value : '',
+        message:         msg.value.trim(),
+        website:         document.getElementById('fhp')?.value || '',
+        recaptcha_token: token
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      form.reset();
+      showMsg('✓ ' + data.message, true);
+    } else {
+      showMsg('⚠ ' + data.message, false);
+    }
   } catch {
-    showMsg('Une erreur est survenue. Contactez-moi par email directement.');
+    showMsg('Une erreur est survenue. Contactez-moi directement par email.', false);
   } finally {
     sendBtn.classList.remove('loading');
     sendBtn.disabled = false;
   }
 });
 
-function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-function markErr(el)   { el.classList.add('err'); }
+function validEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 254;
+}
+function markErr(el, message) {
+  el.classList.add('err');
+  el.setAttribute('aria-invalid', 'true');
+  const span = el.closest('.fr')?.querySelector('.fr-err-msg');
+  if (span) {
+    span.textContent = message;
+    span.classList.add('visible');
+  }
+}
 function clearErrors() {
-  form.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
+  form.querySelectorAll('.err').forEach(el => {
+    el.classList.remove('err');
+    el.removeAttribute('aria-invalid');
+  });
+  form.querySelectorAll('.fr-err-msg').forEach(span => {
+    span.textContent = '';
+    span.classList.remove('visible');
+  });
   msgEl.textContent = '';
+  msgEl.className = 'cmsg';
 }
-function showMsg(txt) {
+function showMsg(txt, success) {
   msgEl.textContent = txt;
-  setTimeout(() => { msgEl.textContent = ''; }, 7000);
-}
-function fakePost(data) {
-  console.log('Form data:', data);
-  return new Promise(r => setTimeout(r, 1000));
+  msgEl.className = 'cmsg ' + (success ? 'cmsg-ok' : 'cmsg-err');
+  setTimeout(() => {
+    msgEl.textContent = '';
+    msgEl.className = 'cmsg';
+  }, 7000);
 }
 
 /* ============================================================
